@@ -15,21 +15,31 @@ class AI:
 
     def simulation(self,board,player,player_move):
         move_list = []
-        for idx in xrange(self.sim_num):
+        for idx in xrange(self.sim_num/2):
             self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
             cache_move = None
             while self.rule.main() == 0:
-                loc = self.rule.get_board().get_random_loc()
+                loc = self.rule.get_random_loc()
                 self.rule.c_decision(loc)
                 if cache_move == None:
                     cache_move = loc
             if self.rule.main() == player:
                 move_list.append(cache_move)
+
+            self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(-player),None)
+            cache_move = None
+            while self.rule.main() == 0:
+                loc = self.rule.get_random_loc()
+                self.rule.c_decision(loc)
+                if cache_move == None:
+                    cache_move = loc
+            if self.rule.main() == -player:
+                move_list.append(cache_move)
+
         if len(move_list) == 0:
-            return self.simulation(board,player,player_move)
-        move_list_count = []
-        for move in move_list:
-            move_list_count.append(move_list.count(move))
+            self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
+            move_list.append(self.rule.get_random_loc())
+        move_list_count = [move_list.count(move) for move in move_list]
         returning_move = move_list[move_list_count.index(max(move_list_count))]
         print "********************"
         print "player " + str(player)
