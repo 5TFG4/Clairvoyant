@@ -10,6 +10,23 @@ class AI:
         self.piece_score_list = None
         self.piece_win_chance_list = None
         self.reset_piece_score_list()
+        self.searching_tree= []
+        self.reset_searching_tree()
+
+    def get_new_node(self):
+        return [[[]for idx for idx in xrange(self.rule.get_board().get_board_size())] for jdx in xrange(self.rule.get_board().get_board_size())],[0,0,0.0]
+
+    def reset_searching_tree(self):
+        self.searching_tree = [self.get_new_node() for by_player in xrange(2)]
+
+    def update_searching_tree(self):
+        pass
+
+    def add_move(self,cache_move_list,loc):
+        if len(cache_move_list[loc[1],loc[0]]) == 0:
+
+        cache_move_list[int((-0.5*self.rule.get_player())+0.5)].append(loc)
+        cache_move_list[int((-0.5*self.rule.get_player())+0.5)] = cache_move_list[int((-0.5*self.rule.get_player())+0.5)][-1]
 
     def reset_piece_score_list(self):
         self.piece_score_list = [[[[0,0] for idx in xrange(self.rule.get_board().get_board_size())] for jdx in xrange(self.rule.get_board().get_board_size())]for by_player in xrange(2)]
@@ -26,7 +43,8 @@ class AI:
          #list1.insert(1,'x')
 
     def make_decision(self,board,player,player_move):
-        print "*********************************************************************"
+        print "********************************"
+        print "player " + str(player)
         self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
         #print board.get_empty_loc_list()
         return self.simulation(board,player,player_move)
@@ -40,12 +58,13 @@ class AI:
 
     def get_move_by_score(self):
         highest_score = max([max([max(x_row) for x_row in by_player]) for by_player in self.piece_win_chance_list])
-        print highest_score
+        #print highest_score
         returning_list = []
         [[[returning_list.append([idx,jdx]) for idx in xrange(len(self.piece_win_chance_list[by_player][jdx])) if self.piece_win_chance_list[by_player][jdx][idx] == highest_score]\
         for jdx in xrange(len(self.piece_win_chance_list[by_player]))]\
         for by_player in xrange(len(self.piece_win_chance_list))]
-        print returning_list
+        #print returning_list
+        print "move: " + str(returning_list[0]) + ' by ' + str(highest_score) +' winning chance'
         return returning_list[0]
         #try:
         #    return [loc for loc in self.rule.get_empty_loc_list()\
@@ -77,20 +96,29 @@ class AI:
 
     def simulate(self,loc,board,player,player_move):
         self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
+        cache_move_list= [self.searching_tree[0],self.searching_tree[1]]
         cache_move = None
         #print loc
         if loc == None:
             while self.rule.main() == 0:
                 loc = self.rule.get_random_loc(self.piece_win_chance_list[int((-0.5*self.rule.get_player())+0.5)])
                 self.rule.c_decision(loc)
+                cache_move_list[int((-0.5*self.rule.get_player())+0.5)].append(loc)
+                cache_move_list[int((-0.5*self.rule.get_player())+0.5)] = cache_move_list[int((-0.5*self.rule.get_player())+0.5)][-1]
                 if cache_move == None:
                     cache_move = loc
         else:
             while self.rule.main() == 0:
                 self.rule.c_decision(loc)
+                cache_move_list[int((-0.5*self.rule.get_player())+0.5)].append(loc)
+                cache_move_list[int((-0.5*self.rule.get_player())+0.5)] = cache_move_list[int((-0.5*self.rule.get_player())+0.5)][-1]
                 if cache_move == None:
                     cache_move = loc
-                loc = self.rule.get_random_loc(self.piece_win_chance_list[int((-0.5*self.rule.get_player())+0.5)])
+                #if random.uniform(0,1)>0.5:
+                loc = random.choice(self.rule.get_board().get_empty_loc_list())
+                #self.move_list
+                #else:
+                #    loc = self.rule.get_random_loc(self.piece_win_chance_list[int((-0.5*self.rule.get_player())+0.5)])
         if self.rule.main() == player:
             self.update_piece_score_list(player,cache_move,True,True)
         else:
@@ -103,16 +131,21 @@ class AI:
 
     def simulation(self,board,player,player_move):
         self.reset_piece_score_list()
-        for idx in xrange(int(self.sim_num*0.1)):
-            self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
-            partial_simulate_1 = partial(self.simulate,board = board,player = player,player_move = player_move)
+        el_list = self.rule.get_empty_loc_list()
+        #for idx in xrange(int(self.sim_num*0.1)):
+    #        self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(player),copy.deepcopy(player_move))
+    #        partial_simulate_1 = partial(self.simulate,board = board,player = player,player_move = player_move)
             #print self.rule.get_empty_loc_list()
-            map(partial_simulate_1,self.rule.get_empty_loc_list())
-            self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(-player),None)
-            partial_simulate_2 = partial(self.simulate,board = board,player = -player,player_move = None)
+    #        map(partial_simulate_1,self.rule.get_empty_loc_list())
+        [self.simulate(loc,board,player,player_move) == self.simulate(loc,board,-player,None) for loc in el_list for idx in xrange(int(self.sim_num*0.02))]
+        #    [self.simulate(loc,board,-player,None) for loc in el_list]
+    #        print " = =?"
+    #        self.rule.start_new_game(copy.deepcopy(board),copy.deepcopy(-player),None)
+    #        partial_simulate_2 = partial(self.simulate,board = board,player = -player,player_move = None)
             #print self.rule.get_empty_loc_list()
-            map(partial_simulate_2,self.rule.get_empty_loc_list())
-        for idx in xrange(int(self.sim_num*0.9)):
+    #        map(partial_simulate_2,self.rule.get_empty_loc_list())
+        #print "is that fast?"
+        for idx in xrange(int(self.sim_num)):
             self.simulate(None,board,player,player_move)
             self.simulate(None,board,-player,None)
 #            move_list += map(partial_simulate,self.rule.get_empty_loc_list())+map(partial_simulate,self.rule.get_empty_loc_list())
@@ -128,10 +161,7 @@ class AI:
 #        move_list_count = [move_list.count(move) for move in move_list]
 #        returning_move = move_list[move_list_count.index(max(move_list_count))]
         returning_move = self.get_move_by_score()
-
-
-        print "player " + str(player)
-        print "move: " + str(returning_move)# +  with " + str(max(move_list_count)) + " times"
-        self.print_piece_win_chance_list()
-        self.print_piece_score_list()
+        # +  with " + str(max(move_list_count)) + " times"
+        #self.print_piece_win_chance_list()
+        #self.print_piece_score_list()
         return returning_move
